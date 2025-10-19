@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+message RoundTripFlight {
+  string from_airport = 1;
+  string date = 2;
+  string to_airport = 3;
+  string airline = 5;
+  string flight_number = 6;
+}
+
+message RoundTripAirportCode { string path = 2; }
+
+message RoundTripFlightData { 
+  string date = 2; 
+  repeated RoundTripFlight flights = 4; 
+  RoundTripAirportCode airport_from = 13; 
+  RoundTripAirportCode airport_to = 14; 
+}
+
+enum RoundTripSeat { 
+  UNKNOWN_RT_SEAT = 0; 
+  RT_ECONOMY = 1; 
+  RT_PREMIUM_ECONOMY = 2; 
+  RT_BUSINESS = 3; 
+  RT_FIRST = 4; 
+}
+
+enum RoundTripType { 
+  UNKNOWN_RT_TRIP = 0; 
+  RT_ROUND_TRIP = 1; 
+  RT_ONE_WAY = 2; 
+  RT_MULTI_CITY = 3; 
+}
+
+enum RoundTripPassenger { 
+  UNKNOWN_RT_PASSENGER = 0; 
+  RT_ADULT = 1; 
+  RT_CHILD = 2; 
+  RT_INFANT_IN_SEAT = 3; 
+  RT_INFANT_ON_LAP = 4; 
+}
+
+message RoundTripData { 
+  repeated RoundTripFlightData flights_data = 3; 
+  repeated RoundTripPassenger passengers = 8; 
+  RoundTripSeat seat = 9; 
+  RoundTripType trip = 19; 
+}
