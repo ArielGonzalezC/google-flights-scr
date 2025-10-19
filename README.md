@@ -198,12 +198,22 @@ For round-trip searches:
 ```
 google-flights-scr/
 ├── minimal_flights.py      # Main implementation (single file!)
+├── example.py              # CLI tool for flight search
+├── example_roundtrip.py    # Round-trip examples
+├── test.py                 # Simple tests
 ├── fast_flights/           # Original protobuf definitions
 │   ├── flights.proto       # Protobuf schema
 │   └── flights_pb2.py      # Generated protobuf code
 ├── README.md               # This file
+├── FAQ.md                  # Frequently asked questions
+├── STRUCTURE.md            # Detailed project structure
 └── requirements.txt        # Dependencies
 ```
+
+📖 **Additional Documentation:**
+- [FAQ.md](FAQ.md) - Common questions and answers
+- [STRUCTURE.md](STRUCTURE.md) - Project organization details
+- [example_roundtrip.py](example_roundtrip.py) - Round-trip flight examples
 
 ## 🎨 Design Philosophy
 
