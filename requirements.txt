@@ -1,0 +1,12 @@
+# Minimal Google Flights Scraper - Requirements
+# ===============================================
+# These are the only dependencies needed for the minimal implementation
+
+# Protocol Buffers - for encoding flight search parameters
+protobuf>=5.27.0
+
+# Selectolax - fast HTML parser for extracting flight information
+selectolax>=0.4.0
+
+# Primp - HTTP client with browser impersonation (optional, for making requests)
+primp>=0.15.0

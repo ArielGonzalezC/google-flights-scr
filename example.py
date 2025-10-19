@@ -1,87 +1,132 @@
+"""
+Minimal Google Flights Example
+================================
+Simple command-line interface for searching flights.
+
+Usage:
+    python example.py --origin JFK --destination LAX --depart_date 2025-07-01
+    python example.py --origin JFK --destination LAX --depart_date 2025-07-01 --return_date 2025-07-10
+"""
+
 import argparse
-import json
-from fast_flights import FlightData, Passengers, create_filter, get_flights_from_filter
+from minimal_flights import search_flights, PassengerConfig
 
-def flight_to_dict(flight):
-    return {
-        "is_best": getattr(flight, 'is_best', None),
-        "name": getattr(flight, 'name', None),
-        "departure": getattr(flight, 'departure', None),
-        "arrival": getattr(flight, 'arrival', None),
-        "arrival_time_ahead": getattr(flight, 'arrival_time_ahead', None),
-        "duration": getattr(flight, 'duration', None),
-        "stops": getattr(flight, 'stops', None),
-        "delay": getattr(flight, 'delay', None),
-        "price": getattr(flight, 'price', None),
-    }
-
-def result_to_dict(result):
-    return {
-        "current_price": getattr(result, 'current_price', None),
-        "flights": [flight_to_dict(flight) for flight in getattr(result, 'flights', [])]
-    }
 
 def main():
-    # Argument parser for command-line input
-    parser = argparse.ArgumentParser(description="Flight Price Finder")
-    parser.add_argument('--origin', required=True, help="Origin airport code")
-    parser.add_argument('--destination', required=True, help="Destination airport code")
-    parser.add_argument('--depart_date', required=True, help="Beginning trip date (YYYY-MM-DD)")
-    parser.add_argument('--return_date', required=True, help="Ending trip date (YYYY-MM-DD)")
-    parser.add_argument('--adults', type=int, default=1, help="Number of adult passengers")
-    parser.add_argument('--type', type=str, default="economy", help="Fare class (economy, premium-economy, business or first)")
-    parser.add_argument('--max_stops', type=int, help="Maximum number of stops (optional, [0|1|2])")
-    parser.add_argument('--fetch_mode', type=str, default="common", help="Fetch mode: common, fallback, force-fallback, local, bright-data")
+    """Command-line interface for flight search."""
+    parser = argparse.ArgumentParser(
+        description="Minimal Google Flights Search - Generate flight search URLs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # One-way flight
+  python example.py --origin JFK --destination LAX --depart_date 2025-07-01
 
+  # Round-trip flight
+  python example.py --origin JFK --destination LAX --depart_date 2025-07-01 --return_date 2025-07-10
+
+  # With multiple passengers and business class
+  python example.py --origin JFK --destination LAX --depart_date 2025-07-01 --return_date 2025-07-10 --adults 2 --children 1 --seat_class business
+
+  # With maximum stops
+  python example.py --origin SFO --destination MIA --depart_date 2025-08-01 --max_stops 1
+        """
+    )
+    
+    # Required arguments
+    parser.add_argument('--origin', required=True, 
+                       help="Origin airport code (e.g., JFK, LAX, SFO)")
+    parser.add_argument('--destination', required=True, 
+                       help="Destination airport code")
+    parser.add_argument('--depart_date', required=True, 
+                       help="Departure date (YYYY-MM-DD)")
+    
+    # Optional arguments
+    parser.add_argument('--return_date', 
+                       help="Return date for round-trip (YYYY-MM-DD)")
+    parser.add_argument('--adults', type=int, default=1, 
+                       help="Number of adults (default: 1)")
+    parser.add_argument('--children', type=int, default=0, 
+                       help="Number of children (default: 0)")
+    parser.add_argument('--infants_in_seat', type=int, default=0, 
+                       help="Number of infants with seat (default: 0)")
+    parser.add_argument('--infants_on_lap', type=int, default=0, 
+                       help="Number of infants on lap (default: 0)")
+    parser.add_argument('--seat_class', type=str, default="economy", 
+                       choices=["economy", "premium-economy", "business", "first"],
+                       help="Seat class (default: economy)")
+    parser.add_argument('--max_stops', type=int, 
+                       help="Maximum number of stops (0, 1, or 2)")
 
     args = parser.parse_args()
 
-    # Create a new filter
-    filter = create_filter(
-        flight_data=[
-            FlightData(
-                date=args.depart_date,  # Date of departure for outbound flight
-                from_airport=args.origin,
-                to_airport=args.destination
-            ),
-            FlightData(
-                date=args.return_date,  # Date of departure for return flight
-                from_airport=args.destination,
-                to_airport=args.origin
-            ),
-        ],
-        trip="round-trip",  # Trip (round-trip, one-way)
-        seat=args.type,  # Seat (economy, premium-economy, business or first)
-        passengers=Passengers(
-            adults=args.adults,
-            children=0,
-            infants_in_seat=0,
-            infants_on_lap=0
-        ),
-        max_stops=args.max_stops
+    # Create passenger configuration
+    passengers = PassengerConfig(
+        adults=args.adults,
+        children=args.children,
+        infants_in_seat=args.infants_in_seat,
+        infants_on_lap=args.infants_on_lap
     )
-
-    b64 = filter.as_b64().decode('utf-8')
-    print(
-        "https://www.google.com/travel/flights?tfs=%s" % b64
-    )
-
-    # Get flights with the filter
-    result = get_flights_from_filter(filter,
-                                     mode=args.fetch_mode
-                                     )
-
+    
+    # Validate passengers
     try:
-        # Manually convert the result to a dictionary before serialization
-        result_dict = result_to_dict(result)
-        print(json.dumps(result_dict, indent=4))
-    except TypeError as e:
-        print("Serialization to JSON failed. Raw result output:")
-        print(result)
-        print("Error details:", str(e))
+        passengers.validate()
+    except ValueError as e:
+        print(f"Error: {e}")
+        return 1
 
-    # Print price information
-    print("The price is currently", result.current_price)
+    # Generate search URL
+    try:
+        url = search_flights(
+            origin=args.origin.upper(),
+            destination=args.destination.upper(),
+            departure_date=args.depart_date,
+            return_date=args.return_date,
+            passengers=passengers,
+            seat_class=args.seat_class,
+            max_stops=args.max_stops
+        )
+        
+        # Display results
+        print("\n" + "=" * 70)
+        print("FLIGHT SEARCH URL GENERATED")
+        print("=" * 70)
+        print()
+        print(f"Route: {args.origin.upper()} → {args.destination.upper()}")
+        print(f"Departure: {args.depart_date}")
+        if args.return_date:
+            print(f"Return: {args.return_date}")
+            print(f"Trip Type: Round-trip")
+        else:
+            print(f"Trip Type: One-way")
+        print()
+        print(f"Passengers: {args.adults} adult(s)", end="")
+        if args.children > 0:
+            print(f", {args.children} child(ren)", end="")
+        if args.infants_in_seat > 0:
+            print(f", {args.infants_in_seat} infant(s) with seat", end="")
+        if args.infants_on_lap > 0:
+            print(f", {args.infants_on_lap} infant(s) on lap", end="")
+        print()
+        
+        print(f"Seat Class: {args.seat_class.title()}")
+        if args.max_stops is not None:
+            print(f"Max Stops: {args.max_stops}")
+        print()
+        print("URL:")
+        print(url)
+        print()
+        print("=" * 70)
+        print()
+        print("💡 Tip: Open this URL in your browser to see flight results!")
+        print()
+        
+    except Exception as e:
+        print(f"Error generating search URL: {e}")
+        return 1
+    
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    exit(main())

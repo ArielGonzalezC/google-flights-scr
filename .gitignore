@@ -1,6 +1,52 @@
+# Python
 **/__pycache__/
-/main.py
-.ruff/
-.idea
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 .venv
+venv/
+ENV/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebooks
 .ipynb_checkpoints/
+*.ipynb
+
+# Ruff
+.ruff/
+.ruff_cache/
+
+# Project specific
+/main.py
+data_discovery.ipynb
+uv.lock
+
+# Documentation build
+docs/_build/
+site/
