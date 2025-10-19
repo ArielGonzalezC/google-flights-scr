@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+// Schema for round-trip flight data extraction
+message FlightCode {
+  string airline = 1;
+  string flight_number = 2;
+}
+
+message RoundTripData {
+  repeated FlightCode outbound_codes = 1;
+  repeated FlightCode return_codes = 2;
+}

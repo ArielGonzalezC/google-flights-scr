@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
 
@@ -8,6 +8,7 @@ from typing import List, Literal, Optional
 class Result:
     current_price: Literal["low", "typical", "high"]
     flights: List[Flight]
+    return_flights: Optional[List[Flight]] = None
 
 
 @dataclass
@@ -21,3 +22,4 @@ class Flight:
     stops: int
     delay: Optional[str]
     price: str
+    flight_codes: List[str] = field(default_factory=list)

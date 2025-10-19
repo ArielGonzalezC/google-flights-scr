@@ -11,6 +11,7 @@ from .filter import TFSData
 from .fallback_playwright import fallback_playwright_fetch
 from .bright_data_fetch import bright_data_fetch
 from .primp import Client, Response
+from .parser import FlightHTMLParser
 
 
 DataSource = Literal['html', 'js']
@@ -134,66 +135,12 @@ def parse_response(
         data = json.loads(match.group(1))
         return ResultDecoder.decode(data) if data is not None else None
 
-    flights = []
-
-    for i, fl in enumerate(parser.css('div[jsname="IWWDBc"], div[jsname="YdtKid"]')):
-        is_best_flight = i == 0
-
-        for item in fl.css("ul.Rk10dc li")[
-            : (None if dangerously_allow_looping_last_item or i == 0 else -1)
-        ]:
-            # Flight name
-            name = safe(item.css_first("div.sSHqwe.tPgKwe.ogfYpf span")).text(
-                strip=True
-            )
-
-            # Get departure & arrival time
-            dp_ar_node = item.css("span.mv1WYe div")
-            try:
-                departure_time = dp_ar_node[0].text(strip=True)
-                arrival_time = dp_ar_node[1].text(strip=True)
-            except IndexError:
-                # sometimes this is not present
-                departure_time = ""
-                arrival_time = ""
-
-            # Get arrival time ahead
-            time_ahead = safe(item.css_first("span.bOzv6")).text()
-
-            # Get duration
-            duration = safe(item.css_first("li div.Ak5kof div")).text()
-
-            # Get flight stops
-            stops = safe(item.css_first(".BbR8Ec .ogfYpf")).text()
-
-            # Get delay
-            delay = safe(item.css_first(".GsCCve")).text() or None
-
-            # Get prices
-            price = safe(item.css_first(".YMlIz.FpEdX")).text() or "0"
-
-            # Stops formatting
-            try:
-                stops_fmt = 0 if stops == "Nonstop" else int(stops.split(" ", 1)[0])
-            except ValueError:
-                stops_fmt = "Unknown"
-
-            flights.append(
-                {
-                    "is_best": is_best_flight,
-                    "name": name,
-                    "departure": " ".join(departure_time.split()),
-                    "arrival": " ".join(arrival_time.split()),
-                    "arrival_time_ahead": time_ahead,
-                    "duration": duration,
-                    "stops": stops_fmt,
-                    "delay": delay,
-                    "price": price.replace(",", ""),
-                }
-            )
-
-    current_price = safe(parser.css_first("span.gOatQ")).text()
-    if not flights:
+    # Use enhanced parser for HTML parsing
+    flight_parser = FlightHTMLParser(r.text)
+    flights_data = flight_parser.extract_flight_data(dangerously_allow_looping_last_item)
+    
+    current_price = flight_parser.get_current_price()
+    if not flights_data:
         raise RuntimeError("No flights found:\n{}".format(r.text_markdown))
 
-    return Result(current_price=current_price, flights=[Flight(**fl) for fl in flights])  # type: ignore
+    return Result(current_price=current_price, flights=[Flight(**fl) for fl in flights_data])  # type: ignore
